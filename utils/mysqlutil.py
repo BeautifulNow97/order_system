@@ -25,18 +25,18 @@ sql_insert = """
 # emp 员工表（empno 员工号/ename 员工姓名/job 工作/mgr 上级编号/hiredate 受雇日期/sal 薪金/comm 佣金/deptno 部门编号）
 sql_create = """
             create table emp(
-               empno int primary key COMMENT '员工号',
-               ename varchar(10) COMMENT '员工姓名',
+               id int primary key COMMENT '员工号',
+               name varchar(10) COMMENT '员工姓名',
                job varchar(10) COMMENT '工作',
                sex varchar(5) COMMENT '性别',
                idcard varchar(20) COMMENT '身份证号码',
                bank_id char(30) COMMENT '银行账号',
                bank_address varchar(255) COMMENT '开户行',
                tel varchar(20) COMMENT '联系电话',
-               hiredate DATE COMMENT '受雇日期',
+               hire_date DATE COMMENT '受雇日期',
                sal DECIMAL(7,2) COMMENT '薪金',
-               deptno int COMMENT '部门编号',
-               foreign key(deptno) references dept(deptno))
+               dept_id int COMMENT '部门编号',
+               foreign key(dept_id) references dept(dept_id))
                ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
 
     """
@@ -49,18 +49,18 @@ sql_insert_emp = """
 sql_create = """
          CREATE TABLE `customer` (
               `id` int NOT NULL AUTO_INCREMENT,
-              `name` varchar(128) NOT NULL DEFAULT '' COMMENT '客户姓名',
-              `prefix` varchar(32) NOT NULL UNIQUE DEFAULT '' COMMENT '客户前缀',
-              `tel` varchar(64) NOT NULL DEFAULT '' COMMENT '客户电话',
-              `idcard` char(18) NOT NULL DEFAULT '0' COMMENT '客户身份证号',
-              `bank_id` varchar(128) NOT NULL DEFAULT '' COMMENT '客户银行卡号',
+              `name` varchar(128) NOT NULL  COMMENT '客户姓名',
+              `prefix` varchar(32) NOT NULL UNIQUE  COMMENT '客户前缀',
+              `tel` char(11) NOT NULL UNIQUE COMMENT '客户电话',
+              `idcard` char(18) NOT NULL DEFAULT UNIQUE  COMMENT '客户身份证号',
+              `bank_id` varchar(128) NOT NULL UNIQUE COMMENT '客户银行卡号',
               `bank_address` varchar(128)  DEFAULT '' COMMENT '客户开户行',
               `remark` varchar(128) NOT NULL DEFAULT '无' COMMENT '客户备注',
               `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
               `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-              `empno` int COMMENT '员工号',
+              `emp_id` int COMMENT '员工号',
               PRIMARY KEY (`id`),
-              foreign key(empno) references emp(empno)
+              foreign key(emp_id) references emp(emp_id)
             ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
             
     """
@@ -71,14 +71,12 @@ sql_insert_customer = """
 sql_create = """
 
           create table account(
-          id int primary key auto_increment,
-          name varchar(15) not null COMMENT '客户姓名' ,
+          id int primary key auto_increment COMMENT '账号id',
           account varchar(30) not null unique COMMENT '账号名称' ,
           account_status Boolean not null comment '账号状态',
           `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
           `use_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '使用时间',
-          customer_id int , 
-          foreign key(customer_id) references customer(id)
+          customer_id int, foreign key(customer_id) references customer(id)
             ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
 """
 sql_account = "insert into account(name,tel,account,account_status) values (%s,%s,%s,%s)"
@@ -98,8 +96,7 @@ sql_create = '''
                 account_pwd VARCHAR ( 255 ) DEFAULT '123456' NOT NULL COMMENT '网站账号密码：默认123456',
                 create_time datetime DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '订单创建时间',
                 remark VARCHAR ( 255 ) DEFAULT '无' NULL COMMENT '订单备注'
-            ) COMMENT '订单表', ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
-  '''
+            ) COMMENT '订单表', ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;'''
 
 # 下单表
 sql_create = """
@@ -239,6 +236,9 @@ class MysqlUtil:
         if self.db is not None:
             self.db.close()
 
+# 实现单例
+mysql_obj = MysqlUtil()
+
 
 def inset_new_dept(inset_dept_name: str, inset_loc: str = '本部'):
     """
@@ -259,6 +259,18 @@ def inset_new_dept(inset_dept_name: str, inset_loc: str = '本部'):
     inset_sql = f"""INSERT INTO dept(deptno,dname,loc) VALUES({inset_deptno}, '{inset_dept_name}', '{inset_loc}')"""
     mysql.sql_execute(inset_sql)
     mysql.close(mysql)
+
+
+def query_dept_message(dept_id: int) -> dict:
+    """
+    根据部门id查询部门信息
+    :param dept_id:
+    :return:
+    """
+    query_sql = f"""select * from dept where deptno ={dept_id} """
+    mysql = MysqlUtil()
+    result_dict = mysql.get_fetchone(query_sql)
+    return result_dict
 
 
 def add_emp_message(insert_message: dict) -> bool:
@@ -367,6 +379,36 @@ def update_emp_message(emp_id: int, update_dict: dict) -> bool:
     return mysql.sql_execute(update_sql)
 
 
+def debug_update_emp_message():
+    dic = {'提交人': '张先生',
+           '类型': '员工信息录入',
+           '部门': '业务一部',
+           '岗位': '数据专员',
+           '入职日期': '2022-10-02',
+           '姓名': '黄生会1',
+           '性别': '男',
+           '电话': '18702303793',
+           '身份证': '510225197110086547',
+           '开户行': '中国建设银行南坪支行',
+           '卡号': '6227003762610012416'}
+    # add_emp_message(dic)
+    # debug_sum_account_number()
+
+    dict_key = {'部门': 'deptno',
+                '岗位': 'job',
+                '入职日期': 'hiredate',
+                '姓名': 'ename',
+                '性别': 'sex',
+                '电话': 'tel',
+                '身份证': 'idcard',
+                '开户行': 'bank_address',
+                '卡号': 'bank_id'}
+    print(dic)
+    print('-' * 50)
+
+    update_emp_message(24, dic)
+
+
 def query_emp_message(emp_id: int) -> dict:
     """
     查询员工信息
@@ -415,6 +457,9 @@ def delete_customer_message(customer_id: int) -> bool:
     :param customer_id:
     :return:
     """
+    delete_sql = f""" delete from customer where id ={customer_id} """
+    mysql = MysqlUtil()
+    return mysql.sql_execute(delete_sql)
 
 
 def update_customer_message(customer_id: int, update_dict: dict) -> bool:
@@ -424,6 +469,35 @@ def update_customer_message(customer_id: int, update_dict: dict) -> bool:
     :param update_dict:
     :return:
     """
+    dict_key = {'提交人': 'ename',
+                '类型': 'type',
+                '姓名': 'name',
+                '电话': 'tel',
+                '身份证': 'idcard',
+                '卡号': 'bank_id',
+                '开户行': 'bank_address'}
+    query_sql_emp = f""" select * from customer where id = {customer_id} """
+
+    mysql = MysqlUtil()
+    # 数据库中客户信息=字典
+    customer_old_dict = mysql.get_fetchone(query_sql_emp)
+
+    # 根据key进行转换
+    for key_words in update_dict.keys():
+        key_name = dict_key[key_words]
+        customer_old_dict[key_name] = update_dict[key_words]
+
+    # print(update_dict)
+
+    update_sql = f"""update customer set 
+                            name = '{customer_old_dict['name']}',
+                            
+                            tel = '{customer_old_dict['tel']}',
+                            idcard = '{customer_old_dict['idcard']}',
+                            bank_address = '{customer_old_dict['bank_address']}',
+                            bank_id = '{customer_old_dict['bank_id']}' where id ={customer_id}
+                            """
+    return mysql.sql_execute(update_sql)
 
 
 def query_customer_message_id(customer_id: int) -> dict:
@@ -774,7 +848,7 @@ def query_customer_message(message_dict: dict) -> tuple:
 
 
 def query_account_message(customer_id: int):
-    query_sql = f"""select * from customer where id = {customer_id}"""
+    query_sql = f"""select * from  where id = {customer_id}"""
 
 
 def update_account_customer_id1():
@@ -832,30 +906,4 @@ if __name__ == '__main__':
     #                 'update_time': datetime.datetime(2022, 10, 9, 7, 49, 58), 'empno': 9}
     # print(query_user_status(message_dict['id'], 0))
     # insert_account_many(259, 251, 50, 0)
-    dic = {'提交人': '张先生',
-           '类型': '员工信息录入',
-           '部门': '业务一部',
-           '岗位': '数据专员',
-           '入职日期': '2022-10-02',
-           '姓名': '黄生会1',
-           '性别': '男',
-           '电话': '18702303793',
-           '身份证': '510225197110086547',
-           '开户行': '中国建设银行南坪支行',
-           '卡号': '6227003762610012416'}
-    # add_emp_message(dic)
-    # debug_sum_account_number()
-
-    dict_key = {'部门': 'deptno',
-                '岗位': 'job',
-                '入职日期': 'hiredate',
-                '姓名': 'ename',
-                '性别': 'sex',
-                '电话': 'tel',
-                '身份证': 'idcard',
-                '开户行': 'bank_address',
-                '卡号': 'bank_id'}
-    print(dic)
-    print('-' * 50)
-
-    update_emp_message(24, dic)
+    pass
